@@ -1,0 +1,160 @@
+<%- include('partials/header.ejs', { pageClass: 'page-worldcoin' }) %>
+
+<section class="coin-page">
+    <div class="coin-hero">
+        <p class="coin-eyebrow">Crypto Lookup</p>
+        <img src="/images/worldcoinindex.png" alt="World Coin Index" class="coin-icon">
+        <p class="coin-subtitle">Search a coin label and view the latest market snapshot in BTC.</p>
+    </div>
+
+    <% if (showForm) { %>
+         <form action="/" method="post" class="coin-search-form">
+        <input
+            type="text"
+            name="coinLabel"
+            placeholder="Enter coin label"
+            class="form-control coin-search-input mb-4"
+            required
+        >
+        <button type="submit" class="btn coin-search-button">Get the latest market snapshot</button>
+    </form>
+
+    <p>If you need a <a href="/list">full list</a> of available coins.</p>
+    <% } %>
+
+    <% if (errorMessage) { %>
+        <div class="coin-alert" role="alert">
+            <strong>Lookup issue:</strong> <%= errorMessage %>
+        </div>
+    <% } %>
+
+    <% if (coinData) { %>
+        <section class="coin-result-card">
+            <div class="coin-result-header">
+                <div>
+                    <p class="coin-card-label">Coin</p>
+                    <h2><%= coinData.Name %></h2>
+                </div>
+                <span class="coin-ticker"><%= coinData.Label %></span>
+            </div>
+
+            <div class="coin-stats-grid">
+                <article class="coin-stat">
+                    <p class="coin-stat-label">Price</p>
+                    <p class="coin-stat-value"><%= coinData.formattedPrice %> BTC</p>
+                </article>
+                <article class="coin-stat">
+                    <p class="coin-stat-label">24h Volume</p>
+                    <p class="coin-stat-value"><%= coinData.formattedVolume24h %></p>
+                </article>
+                <article class="coin-stat">
+                    <p class="coin-stat-label">Market</p>
+                    <p class="coin-stat-value"><%= coinData.Name %></p>
+                </article>
+                <article class="coin-stat">
+                    <p class="coin-stat-label">Last Search</p>
+                    <p class="coin-stat-value"><%= coinLabel.toUpperCase() %></p>
+                </article>
+            </div>
+        </section>
+    <% } %>
+
+    <% if (marketList && marketList.length > 0) { %>
+        <section class="coin-market-list">
+            <div class="coin-list-header">
+                <h2>Available Coins</h2>
+                <p>Live market list returned from WorldCoinIndex in BTC.</p>
+            </div>
+
+            <div class="coin-filter-wrap <%= !showForm ? 'coin-filter-wrap-sticky' : '' %>">
+                <label for="coin-filter" class="coin-filter-label">Filter coins</label>
+                <input
+                    id="coin-filter"
+                    type="text"
+                    class="form-control coin-filter-input"
+                    placeholder="Search by label or name"
+                    autocomplete="off"
+                >
+                <p class="coin-filter-status" id="coin-filter-status">Showing all <%= marketList.length %> coins.</p>
+            </div>
+
+            <div class="coin-market-grid" id="coin-market-grid">
+                <% marketList.forEach((market) => { %>
+                    <article class="coin-market-card" data-coin-search="<%= `${market.label} ${market.name}`.toLowerCase() %>">
+                        <div class="coin-market-card-top">
+                            <span class="coin-table-ticker"><%= market.label %></span>
+                            <p class="coin-market-name"><%= market.name %></p>
+                        </div>
+                        <form action="/" method="post" class="coin-market-form">
+                            <input type="hidden" name="coinLabel" value="<%= market.label %>">
+                            <button type="submit" class="btn coin-market-button">Get Snapshot</button>
+                        </form>
+                    </article>
+                <% }) %>
+            </div>
+
+            <p class="coin-empty-state" id="coin-empty-state" hidden>No coins matched your search.</p>
+        </section>
+    <% } %>
+</section>
+
+<% if (!showForm && marketList && marketList.length > 0) { %>
+    <button type="button" class="coin-back-to-top" id="coin-back-to-top" aria-label="Back to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+<% } %>
+
+<script>
+    (() => {
+        const filterInput = document.getElementById("coin-filter");
+        const cards = Array.from(document.querySelectorAll(".coin-market-card"));
+        const emptyState = document.getElementById("coin-empty-state");
+        const status = document.getElementById("coin-filter-status");
+        const backToTopButton = document.getElementById("coin-back-to-top");
+
+        if (filterInput && cards.length > 0 && emptyState && status) {
+            const totalCards = cards.length;
+
+            const updateFilter = () => {
+                const query = filterInput.value.trim().toLowerCase();
+                let visibleCount = 0;
+
+                cards.forEach((card) => {
+                    const searchText = card.dataset.coinSearch || "";
+                    const isVisible = query === "" || searchText.includes(query);
+
+                    card.hidden = !isVisible;
+
+                    if (isVisible) {
+                        visibleCount += 1;
+                    }
+                });
+
+                emptyState.hidden = visibleCount !== 0;
+                status.textContent = query
+                    ? `Showing ${visibleCount} of ${totalCards} coins.`
+                    : `Showing all ${totalCards} coins.`;
+            };
+
+            filterInput.addEventListener("input", updateFilter);
+        }
+
+        if (backToTopButton) {
+            const toggleBackToTop = () => {
+                backToTopButton.classList.toggle("is-visible", window.scrollY > 320);
+            };
+
+            window.addEventListener("scroll", toggleBackToTop);
+            toggleBackToTop();
+
+            backToTopButton.addEventListener("click", () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth",
+                });
+            });
+        }
+    })();
+</script>
+
+<%- include('partials/footer.ejs') %>
